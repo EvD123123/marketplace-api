@@ -99,3 +99,24 @@ This section creates the controller to handle logic and the routes to point URLs
         * `Route::post('/products', [ProductController::class, 'store']);`
         * `Route::put('/products/{product}', [ProductController::class, 'update']);`
         * `Route::delete('/products/{product}', [ProductController::class, 'destroy']);`
+
+## Step 5: Implement Business Logic in Controller
+
+This step involves implementing validation, authorisation, and data formatting directly within the `Api/ProductController`.
+
+1.  **Fill in ProductController Logic**:
+    * Opened `Api/ProductController` and implemented all logic for the five endpoints.
+
+2.  **Validation (In Controller)**:
+    * In the `store` and `update` methods, validation was handled directly using `$request->validate()`.
+    * Rules were defined for `name`, `description`, and `price`.
+
+3.  **Authorisation & Authentication (In Controller)**:
+    * In the `store`, `update`, and `destroy` methods, authentication was checked manually using `if (!$request->user())` to return a `401 Unauthorised` response.
+    * In the `update` and `destroy` methods, authorisation (ensuring only the owner can edit/delete) was checked manually by comparing the product's `user_id` to the authenticated user's `id`. This returns a `403 Forbidden` response if the IDs do not match.
+
+4.  **Data Formatting & Response (In Controller)**:
+    * In the `index`, `store`, `show`, and `update` methods, the JSON response was built manually by creating an array.
+    * This array includes the product details, the `price` formatted as `price_gbp`, and the public `seller` information (ID and name).
+    * The `user` relationship was eager-loaded using `::with('user')` or `->load('user')` to prevent N+1 query problems.
+    * The `destroy` method returns a JSON success message and a `204 No Content` status.
