@@ -1,6 +1,6 @@
 # Marketplace API - Project Setup
 
-This document outlines the initial setup for the Marketplace API project, covering project installation, database configuration, model creation, and API authentication as per Part 1 of the task.
+This document outlines the initial setup for the Marketplace API project, covering project installation, database configuration, model creation, API authentication, and endpoint creation as per Part 1 of the task.
 ## Step 1: Project Setup & Database Configuration
 
 1.  **Install Laravel**:
@@ -79,3 +79,23 @@ Set up API authentication using Laravel Sanctum, as non-users cannot create prod
 4.  **Configure Middleware**:
     * In `bootstrap/app.php`, located the `withMiddleware` section.
     * Added Sanctum's middleware to the `api` group.
+
+## Step 4: Build the API Endpoints (Routes & Controller)
+
+This section creates the controller to handle logic and the routes to point URLs to that logic.
+
+1.  **Create Controller**:
+    * Generated an API resource controller:
+    * `php artisan make:controller Api/ProductController --api`
+    * This command stubs out a controller with the standard methods: `index`, `store`, `show`, `update`, and `destroy`.
+
+2.  **Define Routes**:
+    * Opened `routes/api.php` to define the application's API routes.
+    * **Public Routes**:
+        * `Route::get('/products', [ProductController::class, 'index']);`
+        * `Route::get('/products/{product}', [ProductController::class, 'show']);`
+    * **Protected Routes**:
+        * A route group was created using the `auth:sanctum` middleware to protect endpoints.
+        * `Route::post('/products', [ProductController::class, 'store']);`
+        * `Route::put('/products/{product}', [ProductController::class, 'update']);`
+        * `Route::delete('/products/{product}', [ProductController::class, 'destroy']);`
