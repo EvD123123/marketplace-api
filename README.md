@@ -1,7 +1,6 @@
-# Marketplace API - Project Setup (Steps 1 & 2)
+# Marketplace API - Project Setup
 
-This document outlines the Marketplace API project, covering project installation, database configuration, and model/migration creation as per Part 1 of the task.
-
+This document outlines the initial setup for the Marketplace API project, covering project installation, database configuration, model creation, and API authentication as per Part 1 of the task.
 ## Step 1: Project Setup & Database Configuration
 
 1.  **Install Laravel**:
@@ -62,3 +61,21 @@ This step defines the data structure for `Users` and `Products`.
 5.  **Run Migrations**:
     * Ran the migrations to create the new `products` table in the database.
     * `php artisan migrate`
+
+## Step 3: Set Up Authentication
+
+Set up API authentication using Laravel Sanctum, as non-users cannot create products.
+
+1.  **Install Sanctum**:
+    * `composer require laravel/sanctum`
+
+2.  **Publish Configuration**:
+    * `php artisan vendor:publish --provider="Laravel\Sancom\SanctumServiceProvider"`
+
+3.  **Run Migration**:
+    * Ran the migrations, which added a table for API tokens required by Sanctum.
+    * `php artisan migrate`
+
+4.  **Configure Middleware**:
+    * In `bootstrap/app.php`, located the `withMiddleware` section.
+    * Added Sanctum's middleware to the `api` group.
