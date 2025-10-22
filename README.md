@@ -151,3 +151,32 @@ Wrote automated tests to prove that all the logic built in the controller works 
         php artisan test
         ```
     * All tests passed, confirming the API is working as required.
+
+## Step 7: Refactoring & Additional Tests
+
+After the initial implementation in the project was refactored to improve maintainability, code quality, and adherence to standard principles. The controller was slimmed down by delegating responsibilities to dedicated classes, as is standard in modern Laravel development.
+
+1.  **Refactor Controller Logic**:
+    * **Authorisation**: All manual authentication (`Auth::check()`) and authorisation (`$product->user_id === $user->id`) checks were removed from the `ProductController`.
+    * **Validation**: All `$request->validate()` calls were removed from the controller.
+    * **Response Formatting**: All manual JSON response building (e.g., formatting `price_gbp`, creating the `seller` array) was removed from the controller.
+
+2.  **Implement Form Requests**:
+    * Changes to `StoreProductRequest` and `UpdateProductRequest`.
+    * These classes now automatically handle all **validation** and **authorisation** logic for the `store` and `update` methods.
+
+3.  **Implement API Resources**:
+    * Utilised the existing `ProductResource` and `UserResource` to manage all outgoing JSON responses.
+    * This centralises response formatting, ensuring a consistent API output and removing repetition.
+    * The `ProductResource` now handles the transformation of `price` to `price_gbp`.
+
+4.  **Update Base Controller**:
+    * Modified `app/Http/Controllers/Controller.php` to use the `AuthorisesRequests` trait.
+    * This enabled the use of the `$this->authorise()` method in the `destroy` action for policy-based authorisation.
+
+5.  **Update & Expand Test Suite**:
+    * The existing test suite (`ProductApiTest.php`) was updated to work with the refactored code.
+    * Assertions were modified to expect correct status codes (e.g., `201 Created` on store, `204 No Content` on delete).
+    * Assertions were updated to check for the new JSON structure returned by API Resources (e.g., `data` wrapper).
+    * Additional tests were added to cover edge cases and ensure full coverage of the refactored code to keep downtime for our uses to a minimum.
+

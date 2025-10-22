@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ProductController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 // Public routes
 Route::get('/products', [ProductController::class, 'index']);

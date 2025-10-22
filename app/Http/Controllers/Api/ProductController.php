@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Http\Resources\ProductResource;
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -14,71 +18,25 @@ class ProductController extends Controller
      */
     public function index()
     {
-        // 1. Get all products from the database
         $products = Product::with('user')->get();
 
-        // 2. build response
-        $responseData = $products->map(function ($product) {
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'description' => $product->description,
-                'price_gbp' => number_format($product->price / 100, 2, '.', ''),
-                'created_at' => $product->created_at,
-                // Get the seller's public info
-                'seller' => [
-                    'id' => $product->user->id,
-                    'name' => $product->user->name
-                ],
-            ];
-        });
-
-        // 3. Return the data as JSON
-        return response()->json($responseData);
+        // Use a Resource Collection to format the list
+        return ProductResource::collection($products);
     }
 
     /**
      * [POST /api/products]
      * Creates a new product.
      */
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        // 1. Check if a user is logged in
-        if (!$request->user()) {
-            return response()->json(['message' => 'You must be logged in'], 401); //401 Unauthorised
-        }
+        // 1. Validation & Auth is handled by StoreProductRequest
+        // 2. Create the product using the validated data
+        $product = $request->user()->products()->create($request->validated());
 
-        // 2. Validate the data from the form
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0.01',
-        ]);
-
-        // 3. Create a new Product object
-        $product = new Product();
-        $product->name = $validated['name'];
-        $product->description = $validated['description'];
-        $product->price = (int) round($validated['price'] * 100); // Store as pence
-        $product->user_id = $request->user()->id; // Get the logged-in user's ID
-
-        // 4. Save it to the database
-        $product->save();
-
-        $product->load('user');
-
-        // 5. Return the new product as JSON
-        return response()->json([
-            'id' => $product->id,
-            'name' => $product->name,
-            'description' => $product->description,
-            'price_gbp' => number_format($product->price / 100, 2, '.', ''),
-            'created_at' => $product->created_at,
-            'seller' => [
-                'id' => $product->user->id,
-                'name' => $product->user->name,
-            ],
-        ]);
+        // 3. Return the new product, formatted by the Resource
+        // We eager load 'user' to ensure it's included
+        return new ProductResource($product->load('user'));
     }
 
     /**
@@ -87,99 +45,41 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        // 1. $product from the ID in the URL
-        $product->load('user');
-
-        // 2. Return that product as JSON
-        return response()->json([
-            'id' => $product->id,
-            'name' => $product->name,
-            'description' => $product->description,
-            'price_gbp' => number_format($product->price / 100, 2, '.', ''),
-            'created_at' => $product->created_at,
-            'seller' => [
-                'id' => $product->user->id,
-                'name' => $product->user->name,
-            ],
-        ]);
+        // 1. Route-model binding finds the product
+        // 2. Return the product, formatted by the Resource
+        return new ProductResource($product->load('user'));
     }
 
     /**
      * [PUT /api/products/:id]
      * Edits an existing product.
      */
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        // 1. Check if a user is logged in
-        if (!$request->user()) {
-            return response()->json(['message' => 'You must be logged in'], 401); //401 Unauthorised
-        }
+        // 1. Validation & Auth is handled by UpdateProductRequest
+        // 2. Update the product with validated data
+        $product->update($request->validated());
 
-        // 2. Check if the logged-in user is the one who created the product
-        // This satisfies "editable... only by the user who created the product"
-        if ($product->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'You do not own this product'], 403); // 403 Forbidden
-        }
-
-        // 3. Validate the data
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|required|string',
-            'price' => 'sometimes|required|numeric|min:0.01',
-        ]);
-
-        // 4. Update the product fields if they were sent in the request
-        if (isset($validated['name'])) {
-            $product->name = $validated['name'];
-        }
-        if (isset($validated['description'])) {
-            $product->description = $validated['description'];
-        }
-        if (isset($validated['price'])) {
-            $product->price = (int) round($validated['price'] * 100); // Store as pence
-        }
-
-        // 5. Save the changes
-        $product->save();
-
-        $product->load('user');
-
-        // 6. Return the updated product (manually building the array)
-        return response()->json([
-            'id' => $product->id,
-            'name' => $product->name,
-            'description' => $product->description,
-            'price_gbp' => number_format($product->price / 100, 2, '.', ''),
-            'created_at' => $product->created_at,
-            'seller' => [
-                'id' => $product->user->id,
-                'name' => $product->user->name,
-            ],
-        ]);
+        // 3. Return the updated product, formatted by the Resource
+        return new ProductResource($product->load('user'));
     }
 
     /**
      * [DELETE /api/products/:id]
      * Deletes an existing product.
      */
-    public function destroy(Request $request, Product $product) // MODIFIED: Added Request $request
+    public function destroy(Product $product)
     {
-        // 1. Check if a user is logged in
-        if (!$request->user()) {
-            return response()->json(['message' => 'You must be logged in'], 401); //401 Unauthorised
-        }
+        // 1. Authorise using the ProductPolicy
+        //    This automatically checks the 'delete' method
+        $this->authorize('delete', $product);
 
-        // 2. Check if the logged-in user is the one who created the product
-        // This satisfies "deletable only by the user who created the product"
-        if ($product->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'You do not own this product'], 403); // 403 Forbidden
-        }
-
-        // 3. Delete the product
-        // Because you added `SoftDeletes` to the model, this will soft delete it
+        // 2. Delete the product
         $product->delete();
 
-        // 4. Return a success message
-        return response()->json(['message' => 'Product deleted successfully']);
+        // 3. Return a "204 No Content" response (standard for DELETE)
+        return response()->noContent();
     }
 }
+
+

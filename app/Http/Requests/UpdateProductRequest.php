@@ -11,8 +11,13 @@ class UpdateProductRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // checked in the controler via a Policy
-        return true;
+        // Explicitly get the product from the route
+        $product = $this->route('product');
+
+        // This replaces BOTH auth checks:
+        // 1. Is the user logged in? ($this->user())
+        // 2. Does the user own the product?
+        return $this->user() && $this->user()->id === $product->user_id;
     }
 
     /**
@@ -25,7 +30,7 @@ class UpdateProductRequest extends FormRequest
         return [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
-            'price' => 'sometimes|required|integer|min:1'
+            'price' => 'sometimes|required|numeric|min:0.01'
         ];
     }
 }

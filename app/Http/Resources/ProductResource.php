@@ -18,8 +18,7 @@ class ProductResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
-            // Format the price from pence into a GBP string
-            'price_gbp' => number_format($this->price / 100, 2),
+            'price_gbp' => $this->price_gbp, // Uses the accessor automatically
             'created_at' => $this->created_at->format('d/m/Y H:i:s'),
             // Include the seller info
             'seller' => new UserResource($this->whenLoaded('user')), // 'whenLoaded' prevents an error if the 'user' relationship wasn't fetched
