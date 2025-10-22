@@ -1,6 +1,6 @@
 # Marketplace API - Project Setup
 
-This document outlines the initial setup for the Marketplace API project, covering project installation, database configuration, model creation, API authentication, and endpoint creation as per Part 1 of the task.
+This document outlines the initial setup for the Marketplace API project, covering project installation, database configuration, model creation, API authentication, endpoint creation, and automated testing as per Part 1 of the task.
 ## Step 1: Project Setup & Database Configuration
 
 1.  **Install Laravel**:
@@ -120,3 +120,34 @@ This step involves implementing validation, authorisation, and data formatting d
     * This array includes the product details, the `price` formatted as `price_gbp`, and the public `seller` information (ID and name).
     * The `user` relationship was eager-loaded using `::with('user')` or `->load('user')` to prevent N+1 query problems.
     * The `destroy` method returns a JSON success message and a `204 No Content` status.
+
+## Step 6: Write Automated Tests
+
+Wrote automated tests to prove that all the logic built in the controller works correctly and meets all the requirements.
+
+1.  **Configure Test Database**:
+    * I opened the `phpunit.xml` file and configured it to use a fast, in-memory SQLite database for testing. This keeps the real database clean.
+    * I added these two lines to the `<php>` section:
+        ```xml
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        ```
+
+2.  **Create Test File**:
+    * Ran the following command to create the test file:
+        ```bash
+        php artisan make:test ProductApiTest
+        ```
+    * This created the new file at `tests/Feature/ProductApiTest.php`.
+
+3.  **Add Test Code**:
+    * Opened `tests/Feature/ProductApiTest.php` and replaced its entire contents with a test suite designed to work with the specific "manual" controller I wrote.
+    * The tests use the `RefreshDatabase` trait and `Sanctum::actingAs()` to simulate API logins.
+    * The test suite covers all required cases: listing products, checking for sensitive data, guest/user creation, owner/non-owner updates, and owner/non-owner deletes (including checking for soft deletes).
+
+4.  **Run Tests**:
+    * I ran all the tests from the terminal:
+        ```bash
+        php artisan test
+        ```
+    * All tests passed, confirming the API is working as required.
