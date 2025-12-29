@@ -208,4 +208,12 @@ To ensure we never exceed the quota, we implemented a caching layer in `Currency
 3.  **Safety Margin:** This leaves 70 spare requests/month for server restarts or deployments.
 4.  **Implementation:** Uses Laravel `Cache::remember` with a TTL of 1440 minutes.
 
-
+### Setup Instructions
+1.  Add your API key to the `.env` file:
+    ```
+    EXCHANGE_RATES_API_KEY=your_key_here
+    ```
+2.  Run migrations to add the `currency` column:
+    ```bash
+    php artisan migrate
+    ```
