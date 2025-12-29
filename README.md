@@ -1,4 +1,4 @@
-# Marketplace API - Project Setup
+# Marketplace API - Project Setup (Part 1)
 
 This document outlines the initial setup for the Marketplace API project, covering project installation, database configuration, model creation, API authentication, endpoint creation, and automated testing as per Part 1 of the task.
 ## Step 1: Project Setup & Database Configuration
@@ -179,4 +179,33 @@ After the initial implementation in the project was refactored to improve mainta
     * Assertions were modified to expect correct status codes (e.g., `201 Created` on store, `204 No Content` on delete).
     * Assertions were updated to check for the new JSON structure returned by API Resources (e.g., `data` wrapper).
     * Additional tests were added to cover edge cases and ensure full coverage of the refactored code to keep downtime for our uses to a minimum.
+
+# Part 2
+
+This document tracks the implementation of Part 2 features for the Marketplace API.
+The focus is on scaling for international users (Dynamic Currencies) and improving performance (Pagination & Search).
+
+## Workflow Strategy
+- **NO direct commits** to `main`/`master`.
+- Each feature is developed on an isolated branch.
+- Each feature is submitted as a **Pull Request**.
+- **Pull Requests remain OPEN** for review (Draft/Pending state) and are not merged.
+
+---
+
+## Step 1: Dynamic Currencies
+
+**Branch:** `feature/dynamic-currencies`
+
+### Architectural Decision: Exchange Rate API Limits
+**Constraint:** The `exchangeratesapi.io` free tier allows only 100 requests/month.
+**Challenge:** Real-time fetching on every user request would exhaust this limit in minutes if the site goes viral.
+
+**Solution: Caching Strategy**
+To ensure we never exceed the quota, we implemented a caching layer in `CurrencyService`:
+1.  **Frequency:** We fetch rates exactly **once every 24 hours**.
+2.  **Math:** 1 request/day × 30 days = 30 requests/month.
+3.  **Safety Margin:** This leaves 70 spare requests/month for server restarts or deployments.
+4.  **Implementation:** Uses Laravel `Cache::remember` with a TTL of 1440 minutes.
+
 

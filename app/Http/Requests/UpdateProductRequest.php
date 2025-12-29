@@ -12,12 +12,11 @@ class UpdateProductRequest extends FormRequest
     public function authorize(): bool
     {
         // Explicitly get the product from the route
-        $product = $this->route('product');
+        //$product = $this->route('product');
 
-        // This replaces BOTH auth checks:
-        // 1. Is the user logged in? ($this->user())
-        // 2. Does the user own the product?
-        return $this->user() && $this->user()->id === $product->user_id;
+        // Only check if the user is authenticated.
+        // The controller will check if they own the product.
+        return $this->user() !== null;
     }
 
     /**

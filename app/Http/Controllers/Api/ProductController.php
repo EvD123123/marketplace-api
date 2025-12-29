@@ -56,8 +56,10 @@ class ProductController extends Controller
      */
     public function update(UpdateProductRequest $request, Product $product)
     {
-        // 1. Validation & Auth is handled by UpdateProductRequest
-        // 2. Update the product with validated data
+        // 1. Authorise using the ProductPolicy
+        $this->authorize('update', $product);
+
+        // 2. Update the product with validated data.
         $product->update($request->validated());
 
         // 3. Return the updated product, formatted by the Resource
