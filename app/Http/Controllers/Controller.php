@@ -10,3 +10,5 @@ abstract class Controller
     // Base controller class that other controllers extend
     use AuthorizesRequests, ValidatesRequests;
 }
+
+
