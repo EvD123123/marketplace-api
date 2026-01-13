@@ -180,3 +180,26 @@ After the initial implementation in the project was refactored to improve mainta
     * Assertions were updated to check for the new JSON structure returned by API Resources (e.g., `data` wrapper).
     * Additional tests were added to cover edge cases and ensure full coverage of the refactored code to keep downtime for our uses to a minimum.
 
+## Step 9: Part 2 - Pagination & Search
+
+This step optimizes the API for performance and usability by handling large datasets.
+
+1.  **Workflow & Branching**:
+    * Checked out the `main` branch to ensure a clean slate.
+    * Created a new branch `feature/pagination-search`.
+
+2.  **Update Controller Logic**:
+    * Opened `app/Http/Controllers/Api/ProductController.php` and modified the `index` method.
+    * **Search Implementation**:
+        * Added a check for the `search` query parameter.
+        * Used a `where` clause with the `like` operator (`%...%`) to allow partial matching on the product `name`.
+    * **Pagination Implementation**:
+        * Replaced the standard `get()` method with `paginate(15)` to limit results to 15 records per page.
+        * Added `->appends($request->query())` to ensure search terms and other parameters persist when navigating between pages.
+
+3.  **Verification**:
+    * Verified the pagination structure (meta links, page numbers) and search filtering using `php artisan tinker`.
+
+4.  **Submission**:
+    * Committed changes and pushed the branch.
+    * Opened a Pull Request (PR) to merge `feature/pagination-search` into `main`.

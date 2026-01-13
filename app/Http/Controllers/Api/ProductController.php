@@ -14,13 +14,27 @@ class ProductController extends Controller
 {
     /**
      * [GET /api/products]
-     * Lists all products.
+     * Lists all products with pagination and optional search.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('user')->get();
+        // 1. Start the query (don't get() yet)
+        $query = Product::with('user');
 
-        // Use a Resource Collection to format the list
+        // 2. SEARCH: If the URL has ?search=something
+        if ($request->filled('search')) {
+            $searchTerm = $request->input('search');
+            // "We're only interested on searching by name (partial matches)"
+            $query->where('name', 'like', "%{$searchTerm}%");
+        }
+
+        // 3. PAGINATION: "15 records should be returned per page"
+        $products = $query->paginate(15);
+
+        // 4. Ensure query params (like search=shirt) stay in the "Next Page" links
+        $products->appends($request->query());
+
+        // 5. Return the result
         return ProductResource::collection($products);
     }
 
