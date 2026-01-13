@@ -22,6 +22,7 @@ class ProductFactory extends Factory
             'description' => fake()->sentence(),
             'price' => fake()->numberBetween(1000, 9000), // Price in pence
             'user_id' => User::factory(),
+            'currency' => 'GBP',
         ];
     }
 }

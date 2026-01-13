@@ -15,13 +15,13 @@ class Product extends Model
     use SoftDeletes;
 
     // Attributes that are mass assignable.
-    protected $fillable = ['name', 'description', 'price', 'user_id'];
+    protected $fillable = ['name', 'description', 'price', 'user_id', 'currency'];
 
     // Get the product's price automaticaly convert to pence when setting
     protected function price(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => (int) round($value * 100),
+            set: fn($value) => (int) round($value * 100),
         );
     }
 
@@ -29,7 +29,7 @@ class Product extends Model
     protected function priceGbp(): Attribute
     {
         return Attribute::make(
-            get: fn () => number_format($this->price / 100, 2, '.', ''),
+            get: fn() => number_format($this->price / 100, 2, '.', ''),
         );
     }
 

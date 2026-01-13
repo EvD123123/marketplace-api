@@ -12,5 +12,5 @@ Route::get('/products/{product}', [ProductController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/products', [ProductController::class, 'store']);
     Route::put('/products/{product}', [ProductController::class, 'update']); // (Using PUT for full update)
-    Route::delete('/products/{product}', [ProductController::class, 'destroy']); // [cite: 38]
+    Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 });
