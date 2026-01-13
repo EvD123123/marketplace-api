@@ -25,7 +25,8 @@ class StoreProductRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'description' => 'required|string',
-            'price' => 'required|numeric:|min:0.01',
+            'price' => 'required|numeric|min:0.01',
+            'currency' => 'sometimes|in:EUR,GBP,USD',
         ];
     }
 }

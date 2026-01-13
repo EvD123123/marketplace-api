@@ -1,4 +1,4 @@
-# Marketplace API - Project Setup
+# Marketplace API - Project Setup (Part 1)
 
 This document outlines the initial setup for the Marketplace API project, covering project installation, database configuration, model creation, API authentication, endpoint creation, and automated testing as per Part 1 of the task.
 ## Step 1: Project Setup & Database Configuration
@@ -180,3 +180,174 @@ After the initial implementation in the project was refactored to improve mainta
     * Assertions were updated to check for the new JSON structure returned by API Resources (e.g., `data` wrapper).
     * Additional tests were added to cover edge cases and ensure full coverage of the refactored code to keep downtime for our uses to a minimum.
 
+# Part 2
+
+This document tracks the implementation of Part 2 features for the Marketplace API.
+The focus is on scaling for international users (Dynamic Currencies) and improving performance (Pagination & Search).
+
+## Workflow Strategy
+- **NO direct commits** to `main`/`master`.
+- Each feature is developed on an isolated branch.
+- Each feature is submitted as a **Pull Request**.
+- **Pull Requests remain OPEN** for review (Draft/Pending state) and are not merged.
+
+---
+
+## Step 1: Dynamic Currencies
+
+**Branch:** `feature/dynamic-currencies`
+
+### Architectural Decision: Exchange Rate API Limits
+**Constraint:** The `exchangeratesapi.io` free tier allows only 100 requests/month.
+**Challenge:** Real-time fetching on every user request would exhaust this limit in minutes if the site goes viral.
+
+**Solution: Caching Strategy**
+To ensure we never exceed the quota, we implemented a caching layer in `CurrencyService`:
+1.  **Frequency:** We fetch rates exactly **once every 24 hours**.
+2.  **Math:** 1 request/day × 30 days = 30 requests/month.
+3.  **Safety Margin:** This leaves 70 spare requests/month for server restarts or deployments.
+4.  **Implementation:** Uses Laravel `Cache::remember` with a TTL of 1440 minutes.
+
+### Setup Instructions
+1.  Add your API key to the `.env` file:
+    ```
+    EXCHANGE_RATES_API_KEY=your_key_here
+    ```
+2.  Run migrations to add the `currency` column:
+    ```bash
+    php artisan migrate
+    ```
+
+### Implementation Details
+
+1.  **Database Migration**:
+    * Created migration `add_currency_to_products_table.php`.
+    * Added `currency` column with default value `'GBP'`.
+    * Existing products automatically have GBP as their currency.
+
+2.  **Product Model**:
+    * Added `'currency'` to `$fillable` array.
+
+3.  **Validation**:
+    * Updated `StoreProductRequest` - currency must be `EUR`, `GBP`, or `USD`.
+    * Updated `UpdateProductRequest` - same validation for updates.
+    * If no currency provided, defaults to `GBP`.
+
+4.  **CurrencyService** (`app/Services/CurrencyService.php`):
+    * `convert(int $priceInPence, string $from, string $to)` - converts between currencies.
+    * `getRates()` - fetches rates from API with 24-hour caching.
+
+5.  **ProductController Updates**:
+    * `index()` - accepts `?currency=` parameter, passes to Resource.
+    * `show()` - accepts `?currency=` parameter, passes to Resource.
+    * Default currency is `GBP` if not specified.
+
+6.  **ProductResource Updates**:
+    * Injects `CurrencyService` to convert prices.
+    * Converts from product's stored currency to requested currency.
+    * Returns: `price`, `currency`, `original_currency`.
+
+7.  **ProductFactory**:
+    * Added `'currency' => 'GBP'` default for tests.
+
+### API Usage Examples
+
+```bash
+# Get all products in USD
+GET /api/products?currency=USD
+
+# Get single product in EUR
+GET /api/products/1?currency=EUR
+
+# Create product in EUR
+POST /api/products
+{
+    "name": "European Widget",
+    "description": "A widget for EU customers",
+    "price": 29.99,
+    "currency": "EUR"
+}
+```
+
+### Response Format
+
+```json
+{
+    "data": {
+        "id": 1,
+        "name": "European Widget",
+        "description": "A widget for EU customers",
+        "price": "35.24",
+        "currency": "USD",
+        "original_currency": "EUR",
+        "created_at": "13/01/2026 10:30:00",
+        "seller": {
+            "id": 1,
+            "name": "John Doe"
+        }
+    }
+}
+```
+
+### Verification
+
+All tests pass with the Dynamic Currencies implementation:
+
+```bash
+php artisan test --filter=ProductApiTest
+# Tests: 24 passed (85 assertions)
+```
+
+**New Currency Tests Added:**
+- `test_can_create_product_with_currency` - Creating products with EUR/USD
+- `test_product_defaults_to_gbp_when_no_currency` - Default currency handling
+- `test_cannot_create_product_with_invalid_currency` - Validation for invalid currencies
+- `test_can_view_products_in_different_currency` - Currency conversion on GET /api/products
+- `test_single_product_returns_requested_currency` - Currency conversion on GET /api/products/:id
+
+### Submission
+
+* All changes committed and pushed to `feature/dynamic-currencies` branch.
+* Pull Request opened (NOT merged as per requirements).
+
+---
+
+## Step 2: Pagination & Search
+
+**Branch:** `feature/pagination-search`
+
+### Implementation
+
+1. **Pagination**:
+   * Modified `ProductController@index` to use `paginate(15)`.
+   * Returns 15 products per page with standard Laravel pagination metadata.
+
+2. **Search**:
+   * Added optional `?search=` query parameter.
+   * Uses `WHERE name LIKE %term%` for partial matching.
+   * Query params persist in pagination links via `appends()`.
+
+### API Usage
+
+```bash
+# Get page 1 (default)
+GET /api/products
+
+# Get page 2
+GET /api/products?page=2
+
+# Search products
+GET /api/products?search=shirt
+
+# Combined
+GET /api/products?search=blue&page=2&currency=USD
+```
+
+### Verification
+
+All pagination and search functionality verified through automated tests.
+
+### Submission
+
+* All changes committed and pushed to `feature/pagination-search` branch.
+* Pull Request opened (NOT merged as per requirements).

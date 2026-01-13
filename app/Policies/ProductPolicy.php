@@ -38,7 +38,7 @@ class ProductPolicy
     public function update(User $user, Product $product): bool
     {
         // Check if the authenticated user's ID matches the product's user_id
-        return $user->id === $product->user_id; //
+        return $product->user->is($user);
     }
 
     /**
@@ -47,7 +47,7 @@ class ProductPolicy
     public function delete(User $user, Product $product): bool
     {
         // Check if the authenticated user's ID matches the product's user_id
-        return $user->id === $product->user_id; //
+        return $product->user->is($user);
     }
 
     /**

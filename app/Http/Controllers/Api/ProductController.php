@@ -14,13 +14,24 @@ class ProductController extends Controller
 {
     /**
      * [GET /api/products]
-     * Lists all products.
+     * Lists all products with pagination and optional search.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('user')->get();
+        // 1. Start the query
+        $query = Product::with('user');
 
-        // Use a Resource Collection to format the list
+        // 2. SEARCH: If the URL has ?search=something
+        if ($request->filled('search')) {
+            $searchTerm = $request->input('search');
+            $query->where('name', 'like', "%{$searchTerm}%");
+        }
+
+        // 3. PAGINATION: 15 records per page
+        $products = $query->paginate(15);
+        $products->appends($request->query());
+
+        // 4. Return result (ProductResource handles currency conversion)
         return ProductResource::collection($products);
     }
 
@@ -46,7 +57,7 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         // 1. Route-model binding finds the product
-        // 2. Return the product, formatted by the Resource
+        // 2. Return the product (ProductResource handles currency conversion)
         return new ProductResource($product->load('user'));
     }
 
@@ -56,8 +67,10 @@ class ProductController extends Controller
      */
     public function update(UpdateProductRequest $request, Product $product)
     {
-        // 1. Validation & Auth is handled by UpdateProductRequest
-        // 2. Update the product with validated data
+        // 1. Authorise using the ProductPolicy
+        $this->authorize('update', $product);
+
+        // 2. Update the product with validated data.
         $product->update($request->validated());
 
         // 3. Return the updated product, formatted by the Resource

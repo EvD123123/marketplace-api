@@ -7,17 +7,16 @@ use Illuminate\Foundation\Http\FormRequest;
 class UpdateProductRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determine if the user is authorised to make this request.
      */
     public function authorize(): bool
     {
         // Explicitly get the product from the route
-        $product = $this->route('product');
+        //$product = $this->route('product');
 
-        // This replaces BOTH auth checks:
-        // 1. Is the user logged in? ($this->user())
-        // 2. Does the user own the product?
-        return $this->user() && $this->user()->id === $product->user_id;
+        // Only check if the user is authenticated.
+        // The controller will check if they own the product.
+        return $this->user() !== null;
     }
 
     /**
@@ -30,7 +29,8 @@ class UpdateProductRequest extends FormRequest
         return [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
-            'price' => 'sometimes|required|numeric|min:0.01'
+            'price' => 'sometimes|required|numeric|min:0.01',
+            'currency' => 'sometimes|in:EUR,GBP,USD',
         ];
     }
 }

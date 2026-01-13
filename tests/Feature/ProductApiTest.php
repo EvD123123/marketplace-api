@@ -24,11 +24,11 @@ class ProductApiTest extends TestCase
 
         // check the results
         $response->assertStatus(200) // Check for HTTP 200 OK
-        ->assertJsonCount(3, 'data') // Check that we got 3 products back
-        ->assertJsonStructure([ // Check that the JSON structure is correct
-            // The wildcard '*' checks each item in the array
-            'data' => ['*' => ['id', 'name', 'price_gbp', 'seller' => ['id', 'name']]]
-        ]);
+            ->assertJsonCount(3, 'data') // Check that we got 3 products back
+            ->assertJsonStructure([ // Check that the JSON structure is correct
+                // The wildcard '*' checks each item in the array
+                'data' => ['*' => ['id', 'name', 'price', 'currency', 'seller' => ['id', 'name']]]
+            ]);
     }
 
     // Test for: You haven't publicly exposed any sensitive user data
@@ -43,7 +43,7 @@ class ProductApiTest extends TestCase
             ->assertJsonMissingPath('data.0.seller.email');
     }
 
-// Test for: A non-user shouldn't be able to create a product
+    // Test for: A non-user shouldn't be able to create a product
     public function test_guest_cannot_create_a_product(): void
     {
         $response = $this->postJson('/api/products', [
@@ -55,7 +55,7 @@ class ProductApiTest extends TestCase
         $response->assertStatus(401); // 401 Unauthorised
     }
 
-// Test for: A product listing can be created by a user
+    // Test for: A product listing can be created by a user
     public function test_authenticated_user_can_create_a_product(): void
     {
         $user = User::factory()->create();
@@ -80,22 +80,22 @@ class ProductApiTest extends TestCase
         ]);
     }
 
-// Test for A product listing can be updated by a user who created it
+    // Test for A product listing can be updated by a user who created it
     public function test_product_owner_can_update_their_product(): void
     {
         $user = User::factory()->create();
         $product = Product::factory()->create(['user_id' => $user->id]);
 
         $response = $this->actingAs($user) // Log in as the owner
-        ->putJson('/api/products/' . $product->id, [
-            'name' => 'Updated Name'
-        ]);
+            ->putJson('/api/products/' . $product->id, [
+                'name' => 'Updated Name'
+            ]);
 
         $response->assertStatus(200)
             ->assertJsonPath('data.name', 'Updated Name');
     }
 
-// Test for: Products should be editable only by the user who created the product
+    // Test for: Products should be editable only by the user who created the product
     public function test_user_cannot_update_another_users_product(): void
     {
         $owner = User::factory()->create();
@@ -104,21 +104,21 @@ class ProductApiTest extends TestCase
         $nonOwner = User::factory()->create(); // A different user
 
         $response = $this->actingAs($nonOwner) // Log in as the non-owner
-        ->putJson('/api/products/' . $product->id, [
-            'name' => 'Updated Name'
-        ]);
+            ->putJson('/api/products/' . $product->id, [
+                'name' => 'Updated Name'
+            ]);
 
         $response->assertStatus(403); // 403 Forbidden
     }
 
-// Test for: A product listing can be deleted by the user who created it
+    // Test for: A product listing can be deleted by the user who created it
     public function test_product_owner_can_delete_their_product(): void
     {
         $user = User::factory()->create();
         $product = Product::factory()->create(['user_id' => $user->id]);
 
         $response = $this->actingAs($user) // Log in as the owner
-        ->deleteJson('/api/products/' . $product->id);
+            ->deleteJson('/api/products/' . $product->id);
 
         // Your controller returns 204 No Content on successful deletion
         $response->assertStatus(204); // 204 No Content
@@ -127,7 +127,7 @@ class ProductApiTest extends TestCase
         $this->assertSoftDeleted('products', ['id' => $product->id]);
     }
 
-// Test for: Products should be deletable only by the user who created the product
+    // Test for: Products should be deletable only by the user who created the product
     public function test_user_cannot_delete_another_users_product(): void
     {
         $owner = User::factory()->create();
@@ -136,7 +136,7 @@ class ProductApiTest extends TestCase
         $nonOwner = User::factory()->create();
 
         $response = $this->actingAs($nonOwner) // Log in as the non-owner
-        ->deleteJson('/api/products/' . $product->id);
+            ->deleteJson('/api/products/' . $product->id);
 
         $response->assertStatus(403); // 403 Forbidden
 
@@ -219,7 +219,7 @@ class ProductApiTest extends TestCase
     public function test_show_returns_404_for_invalid_id(): void
     {
         $this->getJson('/api/products/9999') // ID that won't exist
-        ->assertStatus(404);
+            ->assertStatus(404);
     }
 
     // Test for: Soft-deleted products are not listed in the product listing
@@ -279,9 +279,93 @@ class ProductApiTest extends TestCase
         // 3. Check the results
         $response->assertStatus(200)
             ->assertJsonStructure([ // Check structure for a *single* item
-                'data' => ['id', 'name', 'price_gbp', 'seller' => ['id', 'name']]
+                'data' => ['id', 'name', 'price', 'currency', 'seller' => ['id', 'name']]
             ])
             ->assertJsonPath('data.name', $product->name) // Check if it's the right product
             ->assertJsonPath('data.seller.id', $product->user->id);
     }
+
+    // === CURRENCY TESTS ===
+
+    // Test for: Creating a product with a specific currency
+    public function test_can_create_product_with_currency(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/products', [
+                'name' => 'Euro Product',
+                'description' => 'A product in euros.',
+                'price' => 29.99,
+                'currency' => 'EUR',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.original_currency', 'EUR');
+
+        $this->assertDatabaseHas('products', [
+            'name' => 'Euro Product',
+            'currency' => 'EUR',
+        ]);
+    }
+
+    // Test for: Product defaults to GBP when no currency specified
+    public function test_product_defaults_to_gbp_when_no_currency(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/products', [
+                'name' => 'Default Currency Product',
+                'description' => 'No currency specified.',
+                'price' => 15.00,
+            ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('products', [
+            'name' => 'Default Currency Product',
+            'currency' => 'GBP',
+        ]);
+    }
+
+    // Test for: Invalid currency returns 422 validation error
+    public function test_cannot_create_product_with_invalid_currency(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/products', [
+                'name' => 'Invalid Currency Product',
+                'description' => 'Bad currency.',
+                'price' => 10.00,
+                'currency' => 'JPY', // Not allowed
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['currency']);
+    }
+
+    // Test for: Viewing products in a different currency
+    public function test_can_view_products_in_different_currency(): void
+    {
+        Product::factory()->create(['currency' => 'GBP']);
+
+        $response = $this->getJson('/api/products?currency=USD');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.0.currency', 'USD');
+    }
+
+    // Test for: Single product returns requested currency
+    public function test_single_product_returns_requested_currency(): void
+    {
+        $product = Product::factory()->create(['currency' => 'GBP']);
+
+        $response = $this->getJson('/api/products/' . $product->id . '?currency=EUR');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.currency', 'EUR');
+    }
 }
+
